@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>NoSmoke Gym</title>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--txt:#e2e8f0;--mut:#94a3b8;--acc:#22c55e;--acc2:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--txt);padding-bottom:70px}
+header{padding:16px;text-align:center;font-weight:700;font-size:1.2rem}
+.tab{display:none;padding:0 14px 14px}.tab.on{display:block}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px}
+.big{font-size:2rem;font-weight:800;color:var(--acc);text-align:center;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{text-align:center}.stat b{display:block;font-size:1.4rem;color:var(--acc2)}
+.mut{color:var(--mut);font-size:.85rem}
+button{background:var(--acc);color:#04210f;border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:1rem;cursor:pointer}
+button.s{background:#334155;color:var(--txt)}button.r{background:var(--bad);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.row>*{flex:1}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:var(--txt);font-size:1rem}
+label{display:block;margin-top:10px;font-size:.85rem;color:var(--mut)}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#020617;border-top:1px solid #334155}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 4px;font-size:.85rem}nav button.on{color:var(--acc)}
+.bar{height:8px;background:#334155;border-radius:6px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--acc)}
+.ms{padding:8px 0;border-bottom:1px solid #334155}.ms:last-child{border:0}.done{color:var(--acc)}
+.chart{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
+.chart div{flex:1;background:var(--acc);border-radius:4px 4px 0 0;position:relative;min-height:2px}
+.chart span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:.7rem;color:var(--mut)}
+.timer{font-size:2.6rem;text-align:center;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums}
+.due{animation:p 1s infinite}@keyframes p{50%{background:#14532d}}
+</style></head><body>
+<header>🚭 NoSmoke Gym 💪</header>
+
+<section id="t-home" class="tab on">
+ <div class="card"><div class="mut" style="text-align:center">Bez papierosa od</div><div class="big" id="clock">--</div>
+  <div class="mut" id="since" style="text-align:center"></div></div>
+ <div class="grid">
+  <div class="card stat"><b id="avoid">0</b><span class="mut">niewypalonych</span></div>
+  <div class="card stat"><b id="money">0</b><span class="mut">zaoszczędzone</span></div>
+  <div class="card stat"><b id="life">0</b><span class="mut">min życia odzyskane*</span></div>
+  <div class="card stat"><b id="todayReps">0</b><span class="mut">powtórzeń dziś</span></div>
+ </div>
+ <div class="card" id="nextCard"><div class="mut" style="text-align:center">Następny trening za</div><div class="timer" id="cd">--:--</div>
+  <div class="mut" id="nextEx" style="text-align:center"></div>
+  <div class="row"><button onclick="goTab('gym')">💪 Zrób serię</button><button class="s" onclick="snooze()">Drzemka 10 min</button></div></div>
+ <div class="card"><b>Mam ochotę zapalić!</b><div class="mut">Wypij wodę, zrób serię — głód trwa zwykle kilka minut.</div>
+  <div class="row"><button onclick="craving()">🔥 Zrób 15 pompek zamiast</button><button class="r" onclick="relapse()">Zapaliłem(am)</button></div></div>
+ <div class="mut">*Szacunek orientacyjny: 11 min/papieros — nie jest to wartość medyczna.</div>
+</section>
+
+<section id="t-health" class="tab">
+ <div class="card"><b>Oś zdrowia</b><div class="mut">Orientacyjne etapy wg WHO/CDC/pacjent.gov.pl. To nie diagnoza.</div><div id="ms"></div></div>
+</section>
+
+<section id="t-gym" class="tab">
+ <div class="card"><b>Dodaj serię</b>
+  <label>Ćwiczenie</label><select id="ex"><option value="pushup">Pompki</option><option value="curl">Biceps – hantle</option></select>
+  <label>Powtórzenia</label><input id="reps" type="number" value="15" min="1">
+  <label>Ciężar hantli (kg, opcjonalnie)</label><input id="kg" type="number" step="0.5" value="">
+  <div class="row"><button onclick="addSet()">✅ Zapisz serię</button></div></div>
+ <div class="card"><b>Ostatnie 7 dni (powtórzenia)</b><div class="chart" id="chart"></div><div style="height:20px"></div></div>
+ <div class="card"><b>Podsumowanie</b><div id="sum" class="mut"></div></div>
+ <div class="card"><b>Dzisiejsze serie</b><div id="log" class="mut"></div></div>
+</section>
+
+<section id="t-set" class="tab">
+ <div class="card"><b>Rzucanie</b>
+  <label>Data i godzina ostatniego papierosa</label><input id="qd" type="datetime-local">
+  <label>Papierosów dziennie (dawniej)</label><input id="cpd" type="number" value="20">
+  <label>Cena paczki</label><input id="pp" type="number" step="0.01" value="25">
+  <label>Papierosów w paczce</label><input id="pps" type="number" value="20">
+  <label>Waluta</label><input id="cur" value="zł"></div>
+ <div class="card"><b>Przypomnienia co godzinę</b>
+  <label>Włączone</label><select id="en"><option value="1">Tak</option><option value="0">Nie</option></select>
+  <label>Od godziny</label><input id="from" type="number" min="0" max="23" value="8">
+  <label>Do godziny</label><input id="to" type="number" min="0" max="23" value="22">
+  <label>Tryb ćwiczeń</label><select id="mode"><option value="alt">Na zmianę pompki / biceps</option><option value="pushup">Tylko pompki</option><option value="curl">Tylko biceps</option></select>
+  <label>Domyślnie powtórzeń</label><input id="dreps" type="number" value="15">
+  <div class="row"><button onclick="saveSet()">💾 Zapisz</button><button class="s" onclick="askNotif()">🔔 Zezwól na powiadomienia</button></div>
+  <div class="mut" style="margin-top:8px">Aplikacja musi być otwarta (karta w tle działa, ale telefon może ją uśpić). Dźwięk + wibracja + powiadomienie.</div></div>
+ <div class="card"><div class="row"><button class="s" onclick="exp()">⬇ Eksport JSON</button><button class="r" onclick="if(confirm('Usunąć wszystkie dane?')){localStorage.clear();location.reload()}">Reset</button></div></div>
+</section>
+
+<nav>
+ <button data-t="home" class="on" onclick="goTab('home')">🏠 Start</button>
+ <button data-t="health" onclick="goTab('health')">❤️ Zdrowie</button>
+ <button data-t="gym" onclick="goTab('gym')">💪 Siłownia</button>
+ <button data-t="set" onclick="goTab('set')">⚙️ Ustaw.</button>
+</nav>
+
+<script>
+const $=id=>document.getElementById(id);
+const K='nosmoke_v1';
+const def={quit:new Date(Date.now()-60000).toISOString(),cpd:20,pp:25,pps:20,cur:'zł',en:1,from:8,to:22,mode:'alt',dreps:15,sets:[],relapses:[],nextAt:0,lastEx:'curl'};
+let S=Object.assign({},def,JSON.parse(localStorage.getItem(K)||'{}'));
+const save=()=>localStorage.setItem(K,JSON.stringify(S));
+if(!localStorage.getItem(K))save();
+const H=3600e3,D=24*H;
+const MS=[
+[20*60e3,'20 minut','Spada tętno i ciśnienie krwi'],
+[12*H,'12 godzin','Tlenek węgla we krwi wraca do normy'],
+[24*H,'24 godziny','Mniejsze ryzyko ostrego zawału serca'],
+[72*H,'72 godziny','Oskrzela się rozluźniają, łatwiej oddychać'],
+[14*D,'2 tygodnie','Poprawa krążenia i wydolności płuc (do 3 mies.)'],
+[30*D,'1 miesiąc','Zaczyna ustępować kaszel i duszność (1–9 mies.)'],
+[90*D,'3 miesiące','Wyraźna poprawa kondycji i wydolności płuc'],
+[270*D,'9 miesięcy','Kaszel i duszność wyraźnie mniejsze'],
+[365*D,'1 rok','Ryzyko choroby wieńcowej o połowę mniejsze'],
+[5*365*D,'5 lat','Niższe ryzyko udaru i raka jamy ustnej, przełyku, płuc'],
+[10*365*D,'10 lat','Śmiertelność z powodu raka płuc ok. 2x niższa niż u palaczy'],
+[15*365*D,'15 lat','Ryzyko chorób serca jak u osoby niepalącej']];
+const pad=n=>String(n).padStart(2,'0');
+const dayKey=d=>{d=new Date(d);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const exName=e=>e==='pushup'?'Pompki':'Biceps (hantle)';
+function goTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ if(t==='gym')$('ex').value=nextEx();renderGym()}
+function nextEx(){return S.mode==='alt'?(S.lastEx==='curl'?'pushup':'curl'):S.mode}
+function tick(){
+ const q=new Date(S.quit).getTime(),el=Math.max(0,Date.now()-q);
+ const d=Math.floor(el/D),h=Math.floor(el%D/H),m=Math.floor(el%H/60e3),s=Math.floor(el%60e3/1e3);
+ $('clock').textContent=`${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+ $('since').textContent='od '+new Date(S.quit).toLocaleString('pl-PL');
+ const av=el/D*S.cpd;$('avoid').textContent=Math.floor(av);
+ $('money').textContent=(av/S.pps*S.pp).toFixed(2)+' '+S.cur;
+ $('life').textContent=Math.floor(av*11);
+ $('todayReps').textContent=todayReps();
+ renderMs(el);reminder();
+}
+function renderMs(el){
+ $('ms').innerHTML=MS.map(([t,n,d])=>{const p=Math.min(100,el/t*100);
+  return `<div class="ms ${p>=100?'done':''}"><b>${p>=100?'✅':'⏳'} ${n}</b><div class="mut">${d}</div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join('');
+}
+function todayReps(){const k=dayKey(Date.now());return S.sets.filter(x=>dayKey(x.t)===k).reduce((a,b)=>a+b.r,0)}
+function addSet(ex,reps,kg,quiet){
+ ex=ex||$('ex').value;reps=reps||+$('reps').value;kg=kg===undefined?+$('kg').value||0:kg;
+ if(!reps)return;S.sets.push({t:Date.now(),e:ex,r:reps,kg});S.lastEx=ex;scheduleNext(true);save();
+ renderGym();tick();if(!quiet){beep(1)}
+}
+function renderGym(){
+ const days=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*D);return{k:dayKey(d),l:['Nd','Pn','Wt','Śr','Cz','Pt','So'][d.getDay()]}});
+ const vals=days.map(d=>S.sets.filter(x=>dayKey(x.t)===d.k).reduce((a,b)=>a+b.r,0)),mx=Math.max(1,...vals);
+ $('chart').innerHTML=days.map((d,i)=>`<div style="height:${vals[i]/mx*100}%" title="${vals[i]}"><span>${d.l}<br>${vals[i]}</span></div>`).join('');
+ const sum=e=>S.sets.filter(x=>x.e===e).reduce((a,b)=>a+b.r,0);
+ const best=Math.max(0,...S.sets.filter(x=>x.e==='curl').map(x=>x.kg));
+ const ds=new Set(S.sets.map(x=>dayKey(x.t)));let st=0;for(let i=0;;i++){if(ds.has(dayKey(Date.now()-i*D)))st++;else if(i>0)break;else if(i===0)continue;else break}
+ $('sum').innerHTML=`Pompki łącznie: <b>${sum('pushup')}</b><br>Biceps łącznie: <b>${sum('curl')}</b><br>Najcięższe hantle: <b>${best} kg</b><br>Seria dni z treningiem: <b>${st}</b>`;
+ const k=dayKey(Date.now());
+ $('log').innerHTML=S.sets.filter(x=>dayKey(x.t)===k).reverse().map(x=>`${new Date(x.t).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} — ${exName(x.e)} × ${x.r}${x.kg?' @ '+x.kg+' kg':''}`).join('<br>')||'Brak serii dzisiaj.';
+}
+function inWindow(t){const h=new Date(t).getHours();return S.from<=S.to?(h>=S.from&&h<S.to):(h>=S.from||h<S.to)}
+function scheduleNext(fromNow){
+ let t=(fromNow?Date.now():S.nextAt||Date.now())+H;let g=0;
+ while(!inWindow(t)&&g++<48)t+=H/2;
+ S.nextAt=t;save();
+}
+function snooze(){S.nextAt=Date.now()+10*60e3;save();reminder()}
+function reminder(){
+ if(!S.en){$('cd').textContent='wyłączone';$('nextEx').textContent='';return}
+ if(!S.nextAt||S.nextAt<Date.now()-12*H)scheduleNext(true);
+ const left=S.nextAt-Date.now();
+ if(left<=0){
+  $('nextCard').classList.add('due');$('cd').textContent='TERAZ!';
+  const e=nextEx();$('nextEx').textContent=`${exName(e)} × ${S.dreps}`;
+  if(!S.notified||S.notified!==S.nextAt){S.notified=S.nextAt;save();notify(e);}
+ }else{
+  $('nextCard').classList.remove('due');
+  const mm=Math.floor(left/60e3),ss=Math.floor(left%60e3/1e3);$('cd').textContent=`${pad(mm)}:${pad(ss)}`;
+  $('nextEx').textContent=`Plan: ${exName(nextEx())} × ${S.dreps} (od ${pad(S.from)}:00 do ${pad(S.to)}:00)`;
+ }
+}
+function notify(e){
+ beep(3);if(navigator.vibrate)navigator.vibrate([300,150,300,150,300]);
+ if('Notification'in window&&Notification.permission==='granted'){
+  try{new Notification('Czas na ruch! 💪',{body:`${exName(e)} × ${S.dreps}`,tag:'gym'})}catch(_){}}
+ document.title='💪 Czas na serię!';
+}
+function beep(n){try{const c=new (window.AudioContext||window.webkitAudioContext)();
+ for(let i=0;i<n;i++){const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;
+ g.gain.value=.15;o.start(c.currentTime+i*.3);o.stop(c.currentTime+i*.3+.15)}}catch(_){}}
+function askNotif(){if(!('Notification'in window))return alert('Brak wsparcia powiadomień');Notification.requestPermission().then(p=>alert('Powiadomienia: '+p))}
+function craving(){addSet('pushup',15,0);alert('Brawo! 15 pompek zapisane. Głód zaraz minie 💪')}
+function relapse(){if(!confirm('Zresetować licznik? Dane treningowe zostaną.'))return;
+ S.relapses.push({t:Date.now(),prev:S.quit});S.quit=new Date().toISOString();save();loadSet();tick()}
+function loadSet(){
+ const l=new Date(new Date(S.quit).getTime()-new Date().getTimezoneOffset()*60e3).toISOString().slice(0,16);
+ $('qd').value=l;['cpd','pp','pps','cur','en','from','to','mode','dreps'].forEach(k=>$(k).value=S[k]);
+}
+function saveSet(){
+ S.quit=new Date($('qd').value||Date.now()).toISOString();
+ ['cpd','pp','pps','from','to','dreps'].forEach(k=>S[k]=+$(k).value);
+ S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;save();tick();alert('Zapisano ✅')}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='nosmoke-backup.json';a.click()}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)document.title='NoSmoke Gym'});
+loadSet();renderGym();tick();setInterval(tick,1000);
+</script></body></html>
