@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -126,7 +127,12 @@ app.put('/api/data', needDb, auth, async (req, res) => {
 });
 
 app.get('/healthz', (req, res) => res.json({ ok: true, db: ready }));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/quotes.js', (req, res) => res.type('application/javascript').sendFile(path.join(__dirname, 'quotes.js')));
+app.get('/', (req, res) => {
+  let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+  if (!html.includes('/quotes.js')) html = html.replace('</body>', '<script src="/quotes.js"></script></body>');
+  res.type('html').send(html);
+});
 
 const port = process.env.PORT || 10000;
 app.listen(port, '0.0.0.0', () => console.log('listening on ' + port));
