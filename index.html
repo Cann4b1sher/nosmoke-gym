@@ -80,6 +80,12 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
 </section>
 
 <section id="t-set" class="tab">
+ <div class="card"><b>☁️ Konto w chmurze</b><div class="mut" id="accst">Niezalogowany</div>
+  <div id="authForm"><label>Login</label><input id="au" autocomplete="username" autocapitalize="none">
+   <label>Hasło (min. 8 znaków)</label><input id="ap" type="password" autocomplete="current-password">
+   <label>Kod zaproszenia (tylko przy zakładaniu konta)</label><input id="ai" autocapitalize="characters">
+   <div class="row"><button onclick="doAuth('login')">Zaloguj</button><button class="s" onclick="doAuth('register')">Załóż konto</button></div></div>
+  <div id="authOut" style="display:none"><div class="row"><button onclick="syncNow()">🔄 Synchronizuj</button><button class="s" onclick="logout()">Wyloguj</button></div></div></div>
  <div class="card"><b>Rzucanie</b>
   <label>Data i godzina ostatniego papierosa</label><input id="qd" type="datetime-local">
   <label>Papierosów dziennie (dawniej)</label><input id="cpd" type="number" value="20">
@@ -95,7 +101,7 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
   <label>Domyślnie powtórzeń</label><input id="dreps" type="number" value="15">
   <div class="row"><button onclick="saveSet()">💾 Zapisz</button><button class="s" onclick="askNotif()">🔔 Zezwól na powiadomienia</button></div>
   <div class="mut" style="margin-top:8px">Aplikacja musi być otwarta (karta w tle działa, ale telefon może ją uśpić). Dźwięk + wibracja + powiadomienie.</div></div>
- <div class="card"><div class="row"><button class="s" onclick="exp()">⬇ Eksport JSON</button><button class="r" onclick="if(confirm('Usunąć wszystkie dane?')){localStorage.clear();location.reload()}">Reset</button></div></div>
+ <div class="card"><div class="row"><button class="s" onclick="exp()">⬇ Eksport JSON</button><button class="r" onclick="if(confirm('Usunąć dane lokalne? (dane w chmurze zostaną)')){localStorage.clear();location.reload()}">Reset lokalny</button></div></div>
 </section>
 
 <nav>
@@ -108,11 +114,13 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
 
 <script>
 const $=id=>document.getElementById(id);
-const K='nosmoke_v1';
-const def={quit:new Date(Date.now()-60000).toISOString(),cpd:20,pp:25,pps:20,cur:'zł',en:1,from:8,to:22,mode:'alt',dreps:15,dgoal:100,sets:[],relapses:[],nextAt:0,lastEx:'curl',ach:{},cravings:0,lvl:1};
+const K='nosmoke_v1',AK='nosmoke_auth';
+const def={quit:new Date(Date.now()-60000).toISOString(),cpd:20,pp:25,pps:20,cur:'zł',en:1,from:8,to:22,mode:'alt',dreps:15,dgoal:100,sets:[],relapses:[],nextAt:0,lastEx:'curl',ach:{},cravings:0,lvl:1,upd:0};
 let S=Object.assign({},def,JSON.parse(localStorage.getItem(K)||'{}'));
-const save=()=>localStorage.setItem(K,JSON.stringify(S));
-if(!localStorage.getItem(K))save();
+let AUTH=null;try{AUTH=JSON.parse(localStorage.getItem(AK)||'null')}catch(_){}
+let pt=null;
+const save=()=>{localStorage.setItem(K,JSON.stringify(S));if(AUTH){clearTimeout(pt);pt=setTimeout(syncNow,3000)}};
+if(!localStorage.getItem(K))localStorage.setItem(K,JSON.stringify(S));
 const H=3600e3,D=24*H;
 const MS=[
 [20*60e3,'20 minut','Spada tętno i ciśnienie krwi'],
@@ -179,9 +187,9 @@ function lvlOf(xp){const l=Math.floor(Math.sqrt(xp/100))+1;return{l,cur:100*(l-1
 function checkAch(){
  let s=stats(),n=0;
  ACH.forEach(a=>{if(!S.ach[a[0]]&&a[4](s)){S.ach[a[0]]=Date.now();n++;toast(`🏆 ${a[1]} ${a[2]} — +50 XP`);beep(2)}});
- const L=lvlOf(xpOf(s)).l;
- if(L>(S.lvl||1)){S.lvl=L;toast(`⬆️ Poziom ${L}: ${TITLES[Math.min(6,Math.floor((L-1)/2))]}!`)}
- if(n||L!==S.lvl)save();
+ const L=lvlOf(xpOf(s)).l;let ch=n>0;
+ if(L>(S.lvl||1)){S.lvl=L;ch=true;toast(`⬆️ Poziom ${L}: ${TITLES[Math.min(6,Math.floor((L-1)/2))]}!`)}
+ if(ch)save();
  return s;
 }
 function renderLvl(s){
@@ -251,7 +259,7 @@ function reminder(){
  if(left<=0){
   $('nextCard').classList.add('due');$('cd').textContent='TERAZ!';
   const e=nextEx();$('nextEx').textContent=`${exName(e)} × ${S.dreps}`;
-  if(!S.notified||S.notified!==S.nextAt){S.notified=S.nextAt;save();notify(e);}
+  if(!S.notified||S.notified!==S.nextAt){S.notified=S.nextAt;localStorage.setItem(K,JSON.stringify(S));notify(e);}
  }else{
   $('nextCard').classList.remove('due');
   const mm=Math.floor(left/60e3),ss=Math.floor(left%60e3/1e3);$('cd').textContent=`${pad(mm)}:${pad(ss)}`;
@@ -270,7 +278,7 @@ function beep(n){try{const c=new (window.AudioContext||window.webkitAudioContext
 function askNotif(){if(!('Notification'in window))return alert('Brak wsparcia powiadomień');Notification.requestPermission().then(p=>alert('Powiadomienia: '+p))}
 function craving(){S.cravings=(S.cravings||0)+1;addSet('pushup',15,0,true);toast('🛡️ Głód pokonany! +20 XP i 15 pompek zapisane')}
 function relapse(){if(!confirm('Zresetować licznik? Dane treningowe i osiągnięcia zostają. Potknięcie to nie koniec — wracasz do gry.'))return;
- S.relapses.push({t:Date.now(),prev:S.quit});S.quit=new Date().toISOString();save();loadSet();tick()}
+ S.relapses.push({t:Date.now(),prev:S.quit});S.quit=new Date().toISOString();S.upd=Date.now();save();loadSet();tick()}
 function loadSet(){
  const l=new Date(new Date(S.quit).getTime()-new Date().getTimezoneOffset()*60e3).toISOString().slice(0,16);
  $('qd').value=l;['cpd','pp','pps','cur','en','from','to','mode','dreps','dgoal'].forEach(k=>$(k).value=S[k]);
@@ -278,8 +286,61 @@ function loadSet(){
 function saveSet(){
  S.quit=new Date($('qd').value||Date.now()).toISOString();
  ['cpd','pp','pps','from','to','dreps','dgoal'].forEach(k=>S[k]=+$(k).value);
- S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;save();tick();alert('Zapisano ✅')}
+ S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;S.upd=Date.now();save();tick();alert('Zapisano ✅')}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='nosmoke-backup.json';a.click()}
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)document.title='NoSmoke Gym'});
+
+const LOCALONLY=['nextAt','notified'];
+function stripS(){const o=Object.assign({},S);LOCALONLY.forEach(k=>delete o[k]);return o}
+async function api(p,m,b){
+ const h={'Content-Type':'application/json'};if(AUTH)h.Authorization='Bearer '+AUTH.token;
+ const r=await fetch(p,{method:m||'GET',headers:h,body:b?JSON.stringify(b):undefined});
+ let j={};try{j=await r.json()}catch(_){}
+ return{ok:r.ok,status:r.status,j};
+}
+function setSt(t){$('accst').textContent=t;$('authForm').style.display=AUTH?'none':'block';$('authOut').style.display=AUTH?'block':'none'}
+function merge(R){
+ const seen=new Set(S.sets.map(x=>x.t+'|'+x.e));
+ (R.sets||[]).forEach(x=>{const k=x.t+'|'+x.e;if(!seen.has(k)){S.sets.push(x);seen.add(k)}});
+ S.sets.sort((a,b)=>a.t-b.t);
+ S.ach=S.ach||{};Object.entries(R.ach||{}).forEach(([k,v])=>{if(!S.ach[k]||v<S.ach[k])S.ach[k]=v});
+ S.cravings=Math.max(S.cravings||0,R.cravings||0);S.lvl=Math.max(S.lvl||1,R.lvl||1);
+ const rl=new Set((S.relapses||[]).map(x=>x.t));(R.relapses||[]).forEach(x=>{if(!rl.has(x.t)){S.relapses.push(x);rl.add(x.t)}});
+ if((R.upd||0)>(S.upd||0)){['quit','cpd','pp','pps','cur','en','from','to','mode','dreps','dgoal'].forEach(k=>{if(R[k]!==undefined)S[k]=R[k]});S.upd=R.upd;S.nextAt=0}
+ localStorage.setItem(K,JSON.stringify(S));
+}
+async function pull(){
+ const r=await api('/api/data');
+ if(r.status===401){AUTH=null;localStorage.removeItem(AK);setSt('Sesja wygasła — zaloguj się ponownie');return false}
+ if(!r.ok){setSt('Chmura niedostępna ('+r.status+')'+(r.j.error?': '+r.j.error:''));return false}
+ if(r.j.data)merge(r.j.data);
+ return true;
+}
+function refreshAll(){if(!$('t-set').classList.contains('on'))loadSet();renderGym();renderAch();tick()}
+let syncing=false;
+async function syncNow(){
+ if(!AUTH||syncing)return;syncing=true;
+ try{
+  if(await pull()){
+   refreshAll();
+   const r=await api('/api/data','PUT',{data:stripS()});
+   setSt(r.ok?'☁️ Zalogowano: '+AUTH.user+' · zsynchronizowano '+new Date().toLocaleTimeString('pl-PL'):'Błąd zapisu w chmurze ('+r.status+')');
+  }
+ }catch(e){setSt('Offline — dane zapisane lokalnie, wyśliję później')}
+ syncing=false;
+}
+async function doAuth(mode){
+ const u=$('au').value.trim(),p=$('ap').value;if(!u||!p)return alert('Podaj login i hasło');
+ try{
+  const r=await api('/api/'+mode,'POST',{user:u,pass:p,invite:$('ai').value.trim()});
+  if(!r.ok)return alert(r.j.error||'Błąd '+r.status);
+  AUTH={token:r.j.token,user:r.j.user};localStorage.setItem(AK,JSON.stringify(AUTH));$('ap').value='';
+  await syncNow();
+ }catch(e){alert('Brak połączenia z serwerem (używasz wersji statycznej?)')}
+}
+function logout(){AUTH=null;localStorage.removeItem(AK);setSt('Wylogowano (dane lokalne zostają)')}
+setSt(AUTH?'☁️ Zalogowano: '+AUTH.user:'Niezalogowany — dane tylko w tej przeglądarce');
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){document.title='NoSmoke Gym';syncNow()}});
+setInterval(()=>{if(AUTH&&!document.hidden)syncNow()},120000);
 loadSet();renderGym();renderAch();tick();setInterval(tick,1000);
+if(AUTH)syncNow();
 </script></body></html>
