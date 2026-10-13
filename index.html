@@ -18,20 +18,32 @@ button.s{background:#334155;color:var(--txt)}button.r{background:var(--bad);colo
 input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:var(--txt);font-size:1rem}
 label{display:block;margin-top:10px;font-size:.85rem;color:var(--mut)}
 nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#020617;border-top:1px solid #334155}
-nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 4px;font-size:.85rem}nav button.on{color:var(--acc)}
-.bar{height:8px;background:#334155;border-radius:6px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--acc)}
+nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 2px;font-size:.75rem}nav button.on{color:var(--acc)}
+.bar{height:8px;background:#334155;border-radius:6px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--acc);transition:width .5s}
+.bar.x i{background:var(--acc2)}
 .ms{padding:8px 0;border-bottom:1px solid #334155}.ms:last-child{border:0}.done{color:var(--acc)}
 .chart{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
 .chart div{flex:1;background:var(--acc);border-radius:4px 4px 0 0;position:relative;min-height:2px}
 .chart span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:.7rem;color:var(--mut)}
 .timer{font-size:2.6rem;text-align:center;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums}
 .due{animation:p 1s infinite}@keyframes p{50%{background:#14532d}}
+.ag{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.a{background:#0f172a;border-radius:10px;padding:10px;text-align:center;opacity:.4;filter:grayscale(1)}
+.a.u{opacity:1;filter:none;border:1px solid var(--acc2)}
+.a .i{font-size:1.8rem}.a b{display:block;font-size:.85rem}.a span{font-size:.7rem;color:var(--mut)}
+#toast{position:fixed;top:12px;left:12px;right:12px;z-index:9;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#toast div{background:#facc15;color:#1c1917;padding:12px;border-radius:12px;font-weight:700;text-align:center;box-shadow:0 4px 14px #0008}
 </style></head><body>
+<div id="toast"></div>
 <header>🚭 NoSmoke Gym 💪</header>
 
 <section id="t-home" class="tab on">
  <div class="card"><div class="mut" style="text-align:center">Bez papierosa od</div><div class="big" id="clock">--</div>
   <div class="mut" id="since" style="text-align:center"></div></div>
+ <div class="card"><b id="lvl"></b> <span class="mut" id="ttl"></span>
+  <div class="bar x"><i id="xpbar"></i></div><div class="mut" id="xptxt"></div></div>
+ <div class="card"><b>Cel dnia</b> <span class="mut" id="goaltxt"></span><div class="bar"><i id="goalbar"></i></div></div>
+ <div class="card mut" id="quote" style="text-align:center;font-style:italic"></div>
  <div class="grid">
   <div class="card stat"><b id="avoid">0</b><span class="mut">niewypalonych</span></div>
   <div class="card stat"><b id="money">0</b><span class="mut">zaoszczędzone</span></div>
@@ -42,8 +54,14 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
   <div class="mut" id="nextEx" style="text-align:center"></div>
   <div class="row"><button onclick="goTab('gym')">💪 Zrób serię</button><button class="s" onclick="snooze()">Drzemka 10 min</button></div></div>
  <div class="card"><b>Mam ochotę zapalić!</b><div class="mut">Wypij wodę, zrób serię — głód trwa zwykle kilka minut.</div>
-  <div class="row"><button onclick="craving()">🔥 Zrób 15 pompek zamiast</button><button class="r" onclick="relapse()">Zapaliłem(am)</button></div></div>
+  <div class="row"><button onclick="craving()">🔥 Zrób 15 pompek zamiast (+XP)</button><button class="r" onclick="relapse()">Zapaliłem(am)</button></div></div>
  <div class="mut">*Szacunek orientacyjny: 11 min/papieros — nie jest to wartość medyczna.</div>
+</section>
+
+<section id="t-ach" class="tab">
+ <div class="card"><b id="alvl"></b><div class="bar x"><i id="axp"></i></div><div class="mut" id="axpt"></div>
+  <div class="mut" style="margin-top:8px">XP: 5 za godzinę bez papierosa, 1 za powtórzenie, 20 za pokonany głód, 50 za osiągnięcie.</div></div>
+ <div class="card"><b>Osiągnięcia <span id="acnt"></span></b><div class="ag" id="alist" style="margin-top:10px"></div></div>
 </section>
 
 <section id="t-health" class="tab">
@@ -68,8 +86,9 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
   <label>Cena paczki</label><input id="pp" type="number" step="0.01" value="25">
   <label>Papierosów w paczce</label><input id="pps" type="number" value="20">
   <label>Waluta</label><input id="cur" value="zł"></div>
- <div class="card"><b>Przypomnienia co godzinę</b>
-  <label>Włączone</label><select id="en"><option value="1">Tak</option><option value="0">Nie</option></select>
+ <div class="card"><b>Trening i przypomnienia</b>
+  <label>Cel dzienny (powtórzenia)</label><input id="dgoal" type="number" value="100">
+  <label>Przypomnienia co godzinę</label><select id="en"><option value="1">Tak</option><option value="0">Nie</option></select>
   <label>Od godziny</label><input id="from" type="number" min="0" max="23" value="8">
   <label>Do godziny</label><input id="to" type="number" min="0" max="23" value="22">
   <label>Tryb ćwiczeń</label><select id="mode"><option value="alt">Na zmianę pompki / biceps</option><option value="pushup">Tylko pompki</option><option value="curl">Tylko biceps</option></select>
@@ -81,15 +100,16 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
 
 <nav>
  <button data-t="home" class="on" onclick="goTab('home')">🏠 Start</button>
- <button data-t="health" onclick="goTab('health')">❤️ Zdrowie</button>
  <button data-t="gym" onclick="goTab('gym')">💪 Siłownia</button>
+ <button data-t="ach" onclick="goTab('ach')">🏆 Osiągn.</button>
+ <button data-t="health" onclick="goTab('health')">❤️ Zdrowie</button>
  <button data-t="set" onclick="goTab('set')">⚙️ Ustaw.</button>
 </nav>
 
 <script>
 const $=id=>document.getElementById(id);
 const K='nosmoke_v1';
-const def={quit:new Date(Date.now()-60000).toISOString(),cpd:20,pp:25,pps:20,cur:'zł',en:1,from:8,to:22,mode:'alt',dreps:15,sets:[],relapses:[],nextAt:0,lastEx:'curl'};
+const def={quit:new Date(Date.now()-60000).toISOString(),cpd:20,pp:25,pps:20,cur:'zł',en:1,from:8,to:22,mode:'alt',dreps:15,dgoal:100,sets:[],relapses:[],nextAt:0,lastEx:'curl',ach:{},cravings:0,lvl:1};
 let S=Object.assign({},def,JSON.parse(localStorage.getItem(K)||'{}'));
 const save=()=>localStorage.setItem(K,JSON.stringify(S));
 if(!localStorage.getItem(K))save();
@@ -107,23 +127,93 @@ const MS=[
 [5*365*D,'5 lat','Niższe ryzyko udaru i raka jamy ustnej, przełyku, płuc'],
 [10*365*D,'10 lat','Śmiertelność z powodu raka płuc ok. 2x niższa niż u palaczy'],
 [15*365*D,'15 lat','Ryzyko chorób serca jak u osoby niepalącej']];
+const QUOTES=['Głód nikotynowy trwa kilka minut — Twoje mięśnie zostają na dłużej.','Każda seria to głos oddany na osobę, którą chcesz być.','Nie musisz być idealny. Wystarczy, że dziś nie zapalisz.','Oddech, który odzyskujesz, jest wart więcej niż jakakolwiek paczka.','Siła to suma małych powtórzeń. Tak samo wolność.','Wczoraj dałeś radę. Dziś też dasz.','Pompki zamiast papierosa: płuca i biceps mówią dziękuję.','Słabszy dzień? Zrób jedną serię i liczy się jako wygrana.','Każda godzina bez papierosa to realna zmiana w organizmie.','Pieniądze, które zostają w kieszeni, kupią lepszą odżywkę.','Dyscyplina bije motywację. Zrób serię, nawet gdy nie chcesz.','Jesteś silniejszy niż nawyk.'];
+const TITLES=['Nowicjusz','Wojownik','Twardziel','Żelazny','Maszyna','Tytan','Legenda'];
+const ACH=[
+['s1h','⏱️','Pierwsza godzina','1 godzina bez papierosa',s=>s.el>=H],
+['s12h','🫁','Czyste krwiobiegi','12 godzin bez papierosa',s=>s.el>=12*H],
+['s1d','🌅','Doba','24 godziny bez papierosa',s=>s.el>=D],
+['s3d','🔥','Trzy dni','Najtrudniejszy okres za Tobą',s=>s.el>=3*D],
+['s7d','📅','Tydzień','7 dni bez papierosa',s=>s.el>=7*D],
+['s14d','💎','Dwa tygodnie','14 dni bez papierosa',s=>s.el>=14*D],
+['s30d','🏅','Miesiąc','30 dni bez papierosa',s=>s.el>=30*D],
+['s90d','🥇','Kwartał','90 dni bez papierosa',s=>s.el>=90*D],
+['s365d','👑','Rok','365 dni bez papierosa',s=>s.el>=365*D],
+['g1','💪','Pierwsza seria','Zapisz pierwszą serię',s=>s.nsets>=1],
+['g20','🔁','20 serii','Zapisz 20 serii',s=>s.nsets>=20],
+['g100','💯','100 powtórzeń','Łącznie 100 powtórzeń',s=>s.reps>=100],
+['g500','🏋️','500 powtórzeń','Łącznie 500 powtórzeń',s=>s.reps>=500],
+['g1000','🚀','1000 powtórzeń','Łącznie 1000 powtórzeń',s=>s.reps>=1000],
+['g5000','🦾','5000 powtórzeń','Łącznie 5000 powtórzeń',s=>s.reps>=5000],
+['p200','🤸','200 pompek','Łącznie 200 pompek',s=>s.push>=200],
+['c200','💪','200 bicepsów','Łącznie 200 powtórzeń bicepsa',s=>s.curl>=200],
+['m30','⚡','Seria 30','30 powtórzeń w jednej serii',s=>s.maxSet>=30],
+['k10','🧱','Hantle 10 kg','Biceps z ciężarem min. 10 kg',s=>s.kg>=10],
+['k20','🦍','Hantle 20 kg','Biceps z ciężarem min. 20 kg',s=>s.kg>=20],
+['d1','🎯','Cel dnia','Osiągnij dzienny cel',s=>s.maxDay>=S.dgoal],
+['t3','🔗','3 dni z rzędu','Trenuj 3 dni z rzędu',s=>s.streak>=3],
+['t7','📈','7 dni z rzędu','Trenuj 7 dni z rzędu',s=>s.streak>=7],
+['t30','🏆','30 dni z rzędu','Trenuj 30 dni z rzędu',s=>s.streak>=30],
+['cr1','🛡️','Pierwszy głód','Pokonaj głód ćwiczeniami',s=>s.cr>=1],
+['cr10','⚔️','10 głodów','Pokonaj 10 głodów',s=>s.cr>=10],
+['cr50','🐉','50 głodów','Pokonaj 50 głodów',s=>s.cr>=50],
+['z100','💰','100 zaoszczędzone','Zaoszczędź 100 (w Twojej walucie)',s=>s.saved>=100],
+['z500','🤑','500 zaoszczędzone','Zaoszczędź 500',s=>s.saved>=500],
+['z1000','🏝️','1000 zaoszczędzone','Zaoszczędź 1000',s=>s.saved>=1000]];
 const pad=n=>String(n).padStart(2,'0');
 const dayKey=d=>{d=new Date(d);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
 const exName=e=>e==='pushup'?'Pompki':'Biceps (hantle)';
+function toast(t){const d=document.createElement('div');d.textContent=t;$('toast').appendChild(d);setTimeout(()=>d.remove(),4500)}
+function streakDays(){const ds=new Set(S.sets.map(x=>dayKey(x.t)));let st=0;for(let i=0;i<4000;i++){if(ds.has(dayKey(Date.now()-i*D)))st++;else if(i>0)break}return st}
+function stats(){
+ const el=Math.max(0,Date.now()-new Date(S.quit).getTime());
+ const per={};S.sets.forEach(x=>{const k=dayKey(x.t);per[k]=(per[k]||0)+x.r});
+ const sum=e=>S.sets.filter(x=>x.e===e).reduce((a,b)=>a+b.r,0);
+ return{el,nsets:S.sets.length,reps:S.sets.reduce((a,b)=>a+b.r,0),push:sum('pushup'),curl:sum('curl'),
+  maxSet:Math.max(0,...S.sets.map(x=>x.r)),kg:Math.max(0,...S.sets.filter(x=>x.e==='curl').map(x=>x.kg||0)),
+  maxDay:Math.max(0,...Object.values(per)),streak:streakDays(),cr:S.cravings||0,
+  saved:el/D*S.cpd/S.pps*S.pp};
+}
+function xpOf(s){return Math.floor(s.el/H)*5+s.reps+(s.cr*20)+Object.keys(S.ach).length*50}
+function lvlOf(xp){const l=Math.floor(Math.sqrt(xp/100))+1;return{l,cur:100*(l-1)**2,next:100*l*l}}
+function checkAch(){
+ let s=stats(),n=0;
+ ACH.forEach(a=>{if(!S.ach[a[0]]&&a[4](s)){S.ach[a[0]]=Date.now();n++;toast(`🏆 ${a[1]} ${a[2]} — +50 XP`);beep(2)}});
+ const L=lvlOf(xpOf(s)).l;
+ if(L>(S.lvl||1)){S.lvl=L;toast(`⬆️ Poziom ${L}: ${TITLES[Math.min(6,Math.floor((L-1)/2))]}!`)}
+ if(n||L!==S.lvl)save();
+ return s;
+}
+function renderLvl(s){
+ const xp=xpOf(s),L=lvlOf(xp),t=TITLES[Math.min(6,Math.floor((L.l-1)/2))];
+ const p=(xp-L.cur)/(L.next-L.cur)*100;
+ $('lvl').textContent='Poziom '+L.l;$('ttl').textContent=t;$('xpbar').style.width=p+'%';
+ $('xptxt').textContent=`${xp} XP — do poziomu ${L.l+1}: ${L.next-xp} XP`;
+ $('alvl').textContent=`Poziom ${L.l} — ${t}`;$('axp').style.width=p+'%';$('axpt').textContent=$('xptxt').textContent;
+ const g=Math.min(100,todayReps()/S.dgoal*100);
+ $('goalbar').style.width=g+'%';$('goaltxt').textContent=`${todayReps()} / ${S.dgoal}`+(g>=100?' ✅':'');
+ $('quote').textContent='“'+QUOTES[Math.floor(Date.now()/D)%QUOTES.length]+'”';
+}
+function renderAch(){
+ const n=Object.keys(S.ach).length;$('acnt').textContent=`(${n}/${ACH.length})`;
+ $('alist').innerHTML=ACH.map(a=>{const u=S.ach[a[0]];
+  return `<div class="a ${u?'u':''}"><div class="i">${u?a[1]:'🔒'}</div><b>${a[2]}</b><span>${a[3]}</span>${u?'<br><span>'+new Date(u).toLocaleDateString('pl-PL')+'</span>':''}</div>`}).join('');
+}
 function goTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+t));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
- if(t==='gym')$('ex').value=nextEx();renderGym()}
+ if(t==='gym')$('ex').value=nextEx();renderGym();if(t==='ach')renderAch()}
 function nextEx(){return S.mode==='alt'?(S.lastEx==='curl'?'pushup':'curl'):S.mode}
 function tick(){
- const q=new Date(S.quit).getTime(),el=Math.max(0,Date.now()-q);
- const d=Math.floor(el/D),h=Math.floor(el%D/H),m=Math.floor(el%H/60e3),s=Math.floor(el%60e3/1e3);
- $('clock').textContent=`${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+ const s=checkAch(),el=s.el;
+ const d=Math.floor(el/D),h=Math.floor(el%D/H),m=Math.floor(el%H/60e3),sec=Math.floor(el%60e3/1e3);
+ $('clock').textContent=`${d}d ${pad(h)}:${pad(m)}:${pad(sec)}`;
  $('since').textContent='od '+new Date(S.quit).toLocaleString('pl-PL');
  const av=el/D*S.cpd;$('avoid').textContent=Math.floor(av);
  $('money').textContent=(av/S.pps*S.pp).toFixed(2)+' '+S.cur;
  $('life').textContent=Math.floor(av*11);
  $('todayReps').textContent=todayReps();
- renderMs(el);reminder();
+ renderLvl(s);renderMs(el);reminder();
+ if($('t-ach').classList.contains('on')&&Math.floor(Date.now()/1000)%10===0)renderAch();
 }
 function renderMs(el){
  $('ms').innerHTML=MS.map(([t,n,d])=>{const p=Math.min(100,el/t*100);
@@ -132,17 +222,18 @@ function renderMs(el){
 function todayReps(){const k=dayKey(Date.now());return S.sets.filter(x=>dayKey(x.t)===k).reduce((a,b)=>a+b.r,0)}
 function addSet(ex,reps,kg,quiet){
  ex=ex||$('ex').value;reps=reps||+$('reps').value;kg=kg===undefined?+$('kg').value||0:kg;
- if(!reps)return;S.sets.push({t:Date.now(),e:ex,r:reps,kg});S.lastEx=ex;scheduleNext(true);save();
- renderGym();tick();if(!quiet){beep(1)}
+ if(!reps)return;const before=todayReps();
+ S.sets.push({t:Date.now(),e:ex,r:reps,kg});S.lastEx=ex;scheduleNext(true);save();
+ if(!quiet){beep(1);toast(`+${reps} XP 💪 `+QUOTES[Math.floor(Math.random()*QUOTES.length)])}
+ if(before<S.dgoal&&todayReps()>=S.dgoal)toast('🎯 Cel dnia osiągnięty!');
+ renderGym();tick();renderAch();
 }
 function renderGym(){
  const days=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*D);return{k:dayKey(d),l:['Nd','Pn','Wt','Śr','Cz','Pt','So'][d.getDay()]}});
  const vals=days.map(d=>S.sets.filter(x=>dayKey(x.t)===d.k).reduce((a,b)=>a+b.r,0)),mx=Math.max(1,...vals);
  $('chart').innerHTML=days.map((d,i)=>`<div style="height:${vals[i]/mx*100}%" title="${vals[i]}"><span>${d.l}<br>${vals[i]}</span></div>`).join('');
- const sum=e=>S.sets.filter(x=>x.e===e).reduce((a,b)=>a+b.r,0);
- const best=Math.max(0,...S.sets.filter(x=>x.e==='curl').map(x=>x.kg));
- const ds=new Set(S.sets.map(x=>dayKey(x.t)));let st=0;for(let i=0;;i++){if(ds.has(dayKey(Date.now()-i*D)))st++;else if(i>0)break;else if(i===0)continue;else break}
- $('sum').innerHTML=`Pompki łącznie: <b>${sum('pushup')}</b><br>Biceps łącznie: <b>${sum('curl')}</b><br>Najcięższe hantle: <b>${best} kg</b><br>Seria dni z treningiem: <b>${st}</b>`;
+ const s=stats();
+ $('sum').innerHTML=`Pompki łącznie: <b>${s.push}</b><br>Biceps łącznie: <b>${s.curl}</b><br>Najcięższe hantle: <b>${s.kg} kg</b><br>Seria dni z treningiem: <b>${s.streak}</b>`;
  const k=dayKey(Date.now());
  $('log').innerHTML=S.sets.filter(x=>dayKey(x.t)===k).reverse().map(x=>`${new Date(x.t).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} — ${exName(x.e)} × ${x.r}${x.kg?' @ '+x.kg+' kg':''}`).join('<br>')||'Brak serii dzisiaj.';
 }
@@ -177,18 +268,18 @@ function beep(n){try{const c=new (window.AudioContext||window.webkitAudioContext
  for(let i=0;i<n;i++){const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;
  g.gain.value=.15;o.start(c.currentTime+i*.3);o.stop(c.currentTime+i*.3+.15)}}catch(_){}}
 function askNotif(){if(!('Notification'in window))return alert('Brak wsparcia powiadomień');Notification.requestPermission().then(p=>alert('Powiadomienia: '+p))}
-function craving(){addSet('pushup',15,0);alert('Brawo! 15 pompek zapisane. Głód zaraz minie 💪')}
-function relapse(){if(!confirm('Zresetować licznik? Dane treningowe zostaną.'))return;
+function craving(){S.cravings=(S.cravings||0)+1;addSet('pushup',15,0,true);toast('🛡️ Głód pokonany! +20 XP i 15 pompek zapisane')}
+function relapse(){if(!confirm('Zresetować licznik? Dane treningowe i osiągnięcia zostają. Potknięcie to nie koniec — wracasz do gry.'))return;
  S.relapses.push({t:Date.now(),prev:S.quit});S.quit=new Date().toISOString();save();loadSet();tick()}
 function loadSet(){
  const l=new Date(new Date(S.quit).getTime()-new Date().getTimezoneOffset()*60e3).toISOString().slice(0,16);
- $('qd').value=l;['cpd','pp','pps','cur','en','from','to','mode','dreps'].forEach(k=>$(k).value=S[k]);
+ $('qd').value=l;['cpd','pp','pps','cur','en','from','to','mode','dreps','dgoal'].forEach(k=>$(k).value=S[k]);
 }
 function saveSet(){
  S.quit=new Date($('qd').value||Date.now()).toISOString();
- ['cpd','pp','pps','from','to','dreps'].forEach(k=>S[k]=+$(k).value);
+ ['cpd','pp','pps','from','to','dreps','dgoal'].forEach(k=>S[k]=+$(k).value);
  S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;save();tick();alert('Zapisano ✅')}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='nosmoke-backup.json';a.click()}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)document.title='NoSmoke Gym'});
-loadSet();renderGym();tick();setInterval(tick,1000);
+loadSet();renderGym();renderAch();tick();setInterval(tick,1000);
 </script></body></html>
