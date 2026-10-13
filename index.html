@@ -25,7 +25,7 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
 .chart{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
 .chart div{flex:1;background:var(--acc);border-radius:4px 4px 0 0;position:relative;min-height:2px}
 .chart span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:.7rem;color:var(--mut)}
-.timer{font-size:2.6rem;text-align:center;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums}
+.timer{font-size:2.2rem;text-align:center;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums}
 .due{animation:p 1s infinite}@keyframes p{50%{background:#14532d}}
 .ag{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .a{background:#0f172a;border-radius:10px;padding:10px;text-align:center;opacity:.4;filter:grayscale(1)}
@@ -33,6 +33,7 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
 .a .i{font-size:1.8rem}.a b{display:block;font-size:.85rem}.a span{font-size:.7rem;color:var(--mut)}
 #toast{position:fixed;top:12px;left:12px;right:12px;z-index:9;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 #toast div{background:#facc15;color:#1c1917;padding:12px;border-radius:12px;font-weight:700;text-align:center;box-shadow:0 4px 14px #0008}
+#quote{cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
 </style></head><body>
 <div id="toast"></div>
 <header>🚭 NoSmoke Gym 💪</header>
@@ -43,7 +44,7 @@ nav button{flex:1;background:none;color:var(--mut);border-radius:0;padding:14px 
  <div class="card"><b id="lvl"></b> <span class="mut" id="ttl"></span>
   <div class="bar x"><i id="xpbar"></i></div><div class="mut" id="xptxt"></div></div>
  <div class="card"><b>Cel dnia</b> <span class="mut" id="goaltxt"></span><div class="bar"><i id="goalbar"></i></div></div>
- <div class="card mut" id="quote" style="text-align:center;font-style:italic"></div>
+ <div class="card mut" id="quote" style="text-align:center"></div>
  <div class="grid">
   <div class="card stat"><b id="avoid">0</b><span class="mut">niewypalonych</span></div>
   <div class="card stat"><b id="money">0</b><span class="mut">zaoszczędzone</span></div>
@@ -135,7 +136,6 @@ const MS=[
 [5*365*D,'5 lat','Niższe ryzyko udaru i raka jamy ustnej, przełyku, płuc'],
 [10*365*D,'10 lat','Śmiertelność z powodu raka płuc ok. 2x niższa niż u palaczy'],
 [15*365*D,'15 lat','Ryzyko chorób serca jak u osoby niepalącej']];
-const QUOTES=['Głód nikotynowy trwa kilka minut — Twoje mięśnie zostają na dłużej.','Każda seria to głos oddany na osobę, którą chcesz być.','Nie musisz być idealny. Wystarczy, że dziś nie zapalisz.','Oddech, który odzyskujesz, jest wart więcej niż jakakolwiek paczka.','Siła to suma małych powtórzeń. Tak samo wolność.','Wczoraj dałeś radę. Dziś też dasz.','Pompki zamiast papierosa: płuca i biceps mówią dziękuję.','Słabszy dzień? Zrób jedną serię i liczy się jako wygrana.','Każda godzina bez papierosa to realna zmiana w organizmie.','Pieniądze, które zostają w kieszeni, kupią lepszą odżywkę.','Dyscyplina bije motywację. Zrób serię, nawet gdy nie chcesz.','Jesteś silniejszy niż nawyk.'];
 const TITLES=['Nowicjusz','Wojownik','Twardziel','Żelazny','Maszyna','Tytan','Legenda'];
 const ACH=[
 ['s1h','⏱️','Pierwsza godzina','1 godzina bez papierosa',s=>s.el>=H],
@@ -200,7 +200,6 @@ function renderLvl(s){
  $('alvl').textContent=`Poziom ${L.l} — ${t}`;$('axp').style.width=p+'%';$('axpt').textContent=$('xptxt').textContent;
  const g=Math.min(100,todayReps()/S.dgoal*100);
  $('goalbar').style.width=g+'%';$('goaltxt').textContent=`${todayReps()} / ${S.dgoal}`+(g>=100?' ✅':'');
- $('quote').textContent='“'+QUOTES[Math.floor(Date.now()/D)%QUOTES.length]+'”';
 }
 function renderAch(){
  const n=Object.keys(S.ach).length;$('acnt').textContent=`(${n}/${ACH.length})`;
@@ -232,7 +231,7 @@ function addSet(ex,reps,kg,quiet){
  ex=ex||$('ex').value;reps=reps||+$('reps').value;kg=kg===undefined?+$('kg').value||0:kg;
  if(!reps)return;const before=todayReps();
  S.sets.push({t:Date.now(),e:ex,r:reps,kg});S.lastEx=ex;scheduleNext(true);save();
- if(!quiet){beep(1);toast(`+${reps} XP 💪 `+QUOTES[Math.floor(Math.random()*QUOTES.length)])}
+ if(!quiet){beep(1);toast(`+${reps} XP 💪 Zapisano!`)}
  if(before<S.dgoal&&todayReps()>=S.dgoal)toast('🎯 Cel dnia osiągnięty!');
  renderGym();tick();renderAch();
 }
@@ -245,25 +244,35 @@ function renderGym(){
  const k=dayKey(Date.now());
  $('log').innerHTML=S.sets.filter(x=>dayKey(x.t)===k).reverse().map(x=>`${new Date(x.t).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'})} — ${exName(x.e)} × ${x.r}${x.kg?' @ '+x.kg+' kg':''}`).join('<br>')||'Brak serii dzisiaj.';
 }
-function inWindow(t){const h=new Date(t).getHours();return S.from<=S.to?(h>=S.from&&h<S.to):(h>=S.from||h<S.to)}
+function inWindow(h){return S.from<=S.to?(h>=S.from&&h<S.to):(h>=S.from||h<S.to)}
+function nextValidTime(after){
+ const d=new Date(after);
+ for(let i=0;i<48;i++){
+  const cur=new Date(d.getTime()+i*H);
+  if(inWindow(cur.getHours()))return cur.getTime();
+ }
+ return after+H;
+}
 function scheduleNext(fromNow){
- let t=(fromNow?Date.now():S.nextAt||Date.now())+H;let g=0;
- while(!inWindow(t)&&g++<48)t+=H/2;
- S.nextAt=t;save();
+ const base=fromNow?Date.now():(S.nextAt||Date.now());
+ S.nextAt=nextValidTime(base+H);save();
 }
 function snooze(){S.nextAt=Date.now()+10*60e3;save();reminder()}
 function reminder(){
  if(!S.en){$('cd').textContent='wyłączone';$('nextEx').textContent='';return}
- if(!S.nextAt||S.nextAt<Date.now()-12*H)scheduleNext(true);
- const left=S.nextAt-Date.now();
+ const now=Date.now();
+ if(!S.nextAt||S.nextAt<now-24*H||S.nextAt>now+48*H){scheduleNext(true)}
+ const left=S.nextAt-now;
  if(left<=0){
   $('nextCard').classList.add('due');$('cd').textContent='TERAZ!';
   const e=nextEx();$('nextEx').textContent=`${exName(e)} × ${S.dreps}`;
   if(!S.notified||S.notified!==S.nextAt){S.notified=S.nextAt;localStorage.setItem(K,JSON.stringify(S));notify(e);}
  }else{
   $('nextCard').classList.remove('due');
-  const mm=Math.floor(left/60e3),ss=Math.floor(left%60e3/1e3);$('cd').textContent=`${pad(mm)}:${pad(ss)}`;
-  $('nextEx').textContent=`Plan: ${exName(nextEx())} × ${S.dreps} (od ${pad(S.from)}:00 do ${pad(S.to)}:00)`;
+  const dh=Math.floor(left/H),dm=Math.floor(left%H/60e3),ds=Math.floor(left%60e3/1e3);
+  $('cd').textContent=dh>0?`${dh}h ${pad(dm)}m ${pad(ds)}s`:`${pad(dm)}:${pad(ds)}`;
+  const timeStr=new Date(S.nextAt).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  $('nextEx').textContent=`Plan: ${exName(nextEx())} × ${S.dreps} (o ${timeStr}, okno ${pad(S.from)}:00–${pad(S.to)}:00)`;
  }
 }
 function notify(e){
@@ -286,7 +295,7 @@ function loadSet(){
 function saveSet(){
  S.quit=new Date($('qd').value||Date.now()).toISOString();
  ['cpd','pp','pps','from','to','dreps','dgoal'].forEach(k=>S[k]=+$(k).value);
- S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;S.upd=Date.now();save();tick();alert('Zapisano ✅')}
+ S.cur=$('cur').value;S.en=+$('en').value;S.mode=$('mode').value;S.nextAt=0;S.upd=Date.now();save();scheduleNext(true);tick();alert('Zapisano ✅')}
 function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='nosmoke-backup.json';a.click()}
 
 const LOCALONLY=['nextAt','notified'];
@@ -335,7 +344,7 @@ async function doAuth(mode){
   if(!r.ok)return alert(r.j.error||'Błąd '+r.status);
   AUTH={token:r.j.token,user:r.j.user};localStorage.setItem(AK,JSON.stringify(AUTH));$('ap').value='';
   await syncNow();
- }catch(e){alert('Brak połączenia z serwerem (używasz wersji statycznej?)')}
+ }catch(e){alert('Brak połączenia z serwerem')}
 }
 function logout(){AUTH=null;localStorage.removeItem(AK);setSt('Wylogowano (dane lokalne zostają)')}
 setSt(AUTH?'☁️ Zalogowano: '+AUTH.user:'Niezalogowany — dane tylko w tej przeglądarce');
